@@ -54,13 +54,15 @@ CREATE TABLE lang ( -- recognized languages
   name  VARCHAR(63) UNIQUE NOT NULL,
   PRIMARY KEY(id)
 );
+INSERT INTO lang (name)
+VALUES ('English');
 CREATE TABLE fanfiction (
   id                  SERIAL,
   title               VARCHAR(255)  NOT NULL,
   chapters            INT           NOT NULL,
   words               INT           NOT NULL,
-  lang_id             INT           NOT NULL  REFERENCES lang(id),
-  rating_id           INT           NOT NULL  REFERENCES rating(id),
+  lang_id             INT           NOT NULL  REFERENCES lang(id)   DEFAULT 1,
+  rating_id           INT           NOT NULL  REFERENCES rating(id) DEFAULT 1,
   warning_none_given  BOOLEAN       NOT NULL,
   warning_none_apply  BOOLEAN       NOT NULL,
   warning_violence    BOOLEAN       NOT NULL,

@@ -1,0 +1,16 @@
+BEGIN;
+DROP TABLE crossed_over;
+DROP TABLE tagged;
+DROP TABLE authored;
+DROP TABLE fanfiction;
+DROP TABLE lang;
+DROP TABLE profile;
+DROP TABLE author;
+DROP TABLE related;
+DROP TABLE relationship;
+DROP TABLE character_alias;
+DROP TABLE character;
+DROP TABLE fandom;
+DROP TABLE rating;
+DROP TABLE tag;
+COMMIT;

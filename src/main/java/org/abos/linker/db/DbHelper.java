@@ -29,6 +29,8 @@ public final class DbHelper {
 
     public static final String TABLE_SETUP_FILE_NAME = "tableSetup.sql";
 
+    public static final String TABLE_TEARDOWN_FILE_NAME = "tableTearDown.sql";
+
     public static final String URL_PROPERTY = "postgresql_url";
 
     public static final String SU_NAME = "postgresql_su_name";
@@ -87,14 +89,26 @@ public final class DbHelper {
         }
     }
 
-    public void setupTables() throws IOException, SQLException {
-        final URL url = DbHelper.class.getClassLoader().getResource(TABLE_SETUP_FILE_NAME);
+    private void innerExecuteScript(final Connection connection, final String sql) throws SQLException {
+        try (final PreparedStatement stmt = connection.prepareStatement(sql)) {
+            stmt.execute();
+        }
+    }
+
+    private void executeScript(final String resourceLocation) throws SQLException, IOException {
+        final URL url = DbHelper.class.getClassLoader().getResource(resourceLocation);
         final String sql = Files.readString(new File(url.getFile()).toPath());
         try (final Connection connection = getConnection()) {
-            try (final PreparedStatement stmt = connection.prepareStatement(sql)) {
-                stmt.execute();
-            }
+            innerExecuteScript(connection, sql);
         }
+    }
+
+    public void setupTables() throws IOException, SQLException {
+        executeScript(TABLE_SETUP_FILE_NAME);
+    }
+
+    public void tearDownTables() throws IOException, SQLException {
+        executeScript(TABLE_TEARDOWN_FILE_NAME);
     }
 
     /**
@@ -195,11 +209,12 @@ public final class DbHelper {
         final DbHelper dbHelper = new DbHelper();
         BlockingQueue<Character> queue = new WikiScraper().scrapeCharacters();
         try {
-            dbHelper.setupTables();
+            dbHelper.tearDownTables();
         }
         catch (SQLException ex) {
-            /* Tables were already set up, ignore. */
+            /* Tables were already deleted, ignore. */
         }
+        dbHelper.setupTables();
         dbHelper.addCharacters(queue);
     }
 
