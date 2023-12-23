@@ -82,11 +82,14 @@ public final class DbHelper {
             final String readSql = "SELECT id FROM fandom WHERE name=?";
             try (final PreparedStatement insertStmt = connection.prepareStatement(insertSql)) {
                 Character current;
-                while (!Character.DUMMY.equals(queue.peek())) {
+                while (true) {
                     try {
                         current = queue.poll(1, TimeUnit.SECONDS);
                         if (current == null) {
                             continue;
+                        }
+                        if (current.equals(Character.DUMMY)) {
+                            break;
                         }
                         insertStmt.setString(1, current.name());
                         insertStmt.setString(2, current.description());
@@ -115,7 +118,7 @@ public final class DbHelper {
                     } catch (InterruptedException e) {
                         /* Ignore. */
                     }
-                } // -> while queue not ended
+                } // -> while true
             } // -> try with PreparedStatement
         } // -> try with Connection
     }

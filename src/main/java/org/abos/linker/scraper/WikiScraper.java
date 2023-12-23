@@ -58,6 +58,9 @@ public final class WikiScraper {
             }
             for (Element group : content.getElementsByClass("mw-category-group")) {
                 for (Element entry : group.getElementsByTag("a")) {
+                    if (entry.text().equals("Infobox character testing")) {
+                        continue;
+                    }
                     links.put(entry.text(), BASE_URL + entry.attr("href").substring(1));
                 }
             }
