@@ -2,12 +2,19 @@ BEGIN;
 CREATE TABLE tag (
   id          SERIAL,
   name        VARCHAR(255)  UNIQUE NOT NULL,
-  description VARCHAR(511)  NOT NULL,
+  description VARCHAR(511)  NOT NULL          DEFAULT '',
   PRIMARY KEY(id)
 );
 CREATE TABLE rating (
   PRIMARY KEY(id)
 ) INHERITS (tag);
+INSERT INTO rating (name)
+VALUES
+  ('Not rated'),
+  ('General Audiences'),
+  ('Teen and Up Audiences'),
+  ('Mature'),
+  ('Explicit');
 CREATE TABLE fandom (
   id            SERIAL,
   name          VARCHAR(255)  UNIQUE NOT NULL,

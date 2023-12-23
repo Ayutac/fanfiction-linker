@@ -177,6 +177,7 @@ public final class DbHelper {
         try (final Connection connection = getConnection()) {
             final int characterId = getIdByName(connection, CHARACTER_TABLE, name);
             final int aliasId = getIdByName(connection, CHARACTER_TABLE, alias);
+            // replace the IDs where needed
             try (final PreparedStatement aliasStmt = connection.prepareStatement(String.format(preformattedUpdateSQL, "character_alias"))) {
                 aliasStmt.setInt(1, characterId);
                 aliasStmt.setInt(2, aliasId);
@@ -185,6 +186,7 @@ public final class DbHelper {
                 aliasStmt.setInt(1, characterId);
                 aliasStmt.setInt(2, aliasId);
             }
+            // add the alias
             internalAddCharacterAlias(connection, characterId, alias);
         }
     }
