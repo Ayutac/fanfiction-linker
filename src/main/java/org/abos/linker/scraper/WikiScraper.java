@@ -15,9 +15,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public final class WikiScraper {
 
-    private static final String BASE_URL = "https://twiki.shelter.moe/";
+    private static final String BASE_URL = "https://twiki.shelter.moe";
 
-    private static final String CHARACTER_PAGE = "Category:Characters";
+    private static final String CHARACTER_PAGE = "/Category:Characters";
 
     private static final int TIME_OUT = 100; // in milliseconds
 
@@ -61,7 +61,7 @@ public final class WikiScraper {
                     if (entry.text().equals("Infobox character testing")) {
                         continue;
                     }
-                    links.put(entry.text(), BASE_URL + entry.attr("href").substring(1));
+                    links.put(entry.text(), BASE_URL + entry.attr("href"));
                 }
             }
             if (!linkNext.text().contains("next page")) {
@@ -72,7 +72,7 @@ public final class WikiScraper {
             } catch (InterruptedException ex) {
                 /* Ignore */
             }
-            doc = Jsoup.connect(BASE_URL + linkNext.attr("href").substring(1)).get();
+            doc = Jsoup.connect(BASE_URL + linkNext.attr("href")).get();
         }
         // scrape descriptions
         final BlockingQueue<Character> result = new LinkedBlockingQueue<>();
