@@ -44,6 +44,8 @@ CREATE TABLE author (
   name          VARCHAR(255)  NOT NULL,
   PRIMARY KEY(id)
 );
+INSERT INTO author (name)
+VALUES ('Anonymous');
 CREATE TABLE profile (
   author_id     INT   NOT NULL  REFERENCES author(id),
   link          TEXT  NOT NULL,
@@ -83,7 +85,7 @@ CREATE TABLE fanfiction (
 );
 CREATE TABLE authored (
   fanfiction_id INT NOT NULL  REFERENCES fanfiction(id),
-  author_id     INT NOT NULL  REFERENCES author(id),
+  author_id     INT NOT NULL  REFERENCES author(id)       DEFAULT 1,
   PRIMARY KEY(fanfiction_id, author_id)
 );
 CREATE TABLE tagged (
