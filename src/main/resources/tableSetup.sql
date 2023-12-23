@@ -2,7 +2,7 @@ BEGIN;
 CREATE TABLE tag (
   id          SERIAL,
   name        VARCHAR(255)  UNIQUE NOT NULL,
-  description VARCHAR(511)  UNIQUE NOT NULL,
+  description VARCHAR(511)  NOT NULL,
   PRIMARY KEY(id)
 );
 CREATE TABLE rating (
@@ -10,12 +10,13 @@ CREATE TABLE rating (
 ) INHERITS (tag);
 CREATE TABLE fandom (
   id            SERIAL,
-  name          VARCHAR(255)  NOT NULL,
-  link          TEXT          NOT NULL,
+  name          VARCHAR(255)  UNIQUE NOT NULL,
+  link          TEXT          UNIQUE NOT NULL,
   PRIMARY KEY(id)
 );
 CREATE TABLE character (
-  fandom_id INT REFERENCES fandom(id), -- allowed to be null
+  fandom_id INT   REFERENCES fandom(id), -- allowed to be null
+  link      TEXT  UNIQUE,
   PRIMARY KEY(id)
 ) INHERITS (tag);
 CREATE TABLE character_alias (
