@@ -1,13 +1,9 @@
 BEGIN;
-CREATE TABLE tag (
-  id          SERIAL,
-  name        VARCHAR(255)  UNIQUE NOT NULL,
-  description VARCHAR(511)  NOT NULL          DEFAULT '',
+CREATE TABLE rating (
+  id    SERIAL,
+  name  VARCHAR(63),
   PRIMARY KEY(id)
 );
-CREATE TABLE rating (
-  PRIMARY KEY(id)
-) INHERITS (tag);
 INSERT INTO rating (name)
 VALUES
   ('Not rated'),
@@ -21,22 +17,24 @@ CREATE TABLE fandom (
   link          TEXT          UNIQUE NOT NULL,
   PRIMARY KEY(id)
 );
-CREATE TABLE character (
-  fandom_id INT   REFERENCES fandom(id), -- allowed to be null
-  link      TEXT  UNIQUE,
+CREATE TABLE tag (
+  id              SERIAL,
+  name            VARCHAR(255)  UNIQUE NOT NULL,
+  description     VARCHAR(511)  NOT NULL          DEFAULT '',
+  is_character    BOOLEAN       NOT NULL          DEFAULT FALSE,
+  is_relationship BOOLEAN       NOT NULL          DEFAULT FALSE,
+  fandom_id       INT           REFERENCES fandom(id), -- allowed to be null
+  link            TEXT          UNIQUE,
   PRIMARY KEY(id)
-) INHERITS (tag);
-CREATE TABLE character_alias (
-  character_id  INT           NOT NULL  REFERENCES character(id),
-  alias         VARCHAR(255)  NOT NULL,
-  PRIMARY KEY(character_id, alias)
 );
-CREATE TABLE relationship (
-  PRIMARY KEY(id)
-) INHERITS (tag);
+CREATE TABLE tag_alias (
+  tag_id  INT           NOT NULL  REFERENCES tag(id),
+  alias   VARCHAR(255)  NOT NULL,
+  PRIMARY KEY(tag_id, alias)
+);
 CREATE TABLE related (
-  character_id    INT NOT NULL  REFERENCES character(id),
-  relationship_id INT NOT NULL  REFERENCES relationship(id),
+  character_id    INT NOT NULL  REFERENCES tag(id),
+  relationship_id INT NOT NULL  REFERENCES tag(id),
   PRIMARY KEY(character_id, relationship_id)
 );
 CREATE TABLE author (
@@ -61,22 +59,22 @@ VALUES ('English');
 CREATE TABLE fanfiction (
   id                  SERIAL,
   title               VARCHAR(255)  NOT NULL,
-  chapters            INT           NOT NULL,
+  chapters            INT           NOT NULL  DEFAULT 1,
   words               INT           NOT NULL,
   lang_id             INT           NOT NULL  REFERENCES lang(id)   DEFAULT 1,
   rating_id           INT           NOT NULL  REFERENCES rating(id) DEFAULT 1,
-  warning_none_given  BOOLEAN       NOT NULL,
-  warning_none_apply  BOOLEAN       NOT NULL,
-  warning_violence    BOOLEAN       NOT NULL,
-  warning_rape        BOOLEAN       NOT NULL,
-  warning_death       BOOLEAN       NOT NULL,
-  warning_underage    BOOLEAN       NOT NULL,
-  cat_ff              BOOLEAN       NOT NULL,
-  cat_fm              BOOLEAN       NOT NULL,
-  cat_mm              BOOLEAN       NOT NULL,
-  cat_gen             BOOLEAN       NOT NULL,
-  cat_multi           BOOLEAN       NOT NULL,
-  cat_other           BOOLEAN       NOT NULL,
+  warning_none_given  BOOLEAN       NOT NULL  DEFAULT TRUE,
+  warning_none_apply  BOOLEAN       NOT NULL  DEFAULT FALSE,
+  warning_violence    BOOLEAN       NOT NULL  DEFAULT FALSE,
+  warning_rape        BOOLEAN       NOT NULL  DEFAULT FALSE,
+  warning_death       BOOLEAN       NOT NULL  DEFAULT FALSE,
+  warning_underage    BOOLEAN       NOT NULL  DEFAULT FALSE,
+  cat_ff              BOOLEAN       NOT NULL  DEFAULT FALSE,
+  cat_fm              BOOLEAN       NOT NULL  DEFAULT FALSE,
+  cat_mm              BOOLEAN       NOT NULL  DEFAULT FALSE,
+  cat_gen             BOOLEAN       NOT NULL  DEFAULT FALSE,
+  cat_multi           BOOLEAN       NOT NULL  DEFAULT FALSE,
+  cat_other           BOOLEAN       NOT NULL  DEFAULT FALSE,
   completed           BOOLEAN       NOT NULL  DEFAULT FALSE,
   last_updated        BIGINT        NOT NULL, -- millis since epoch
   last_checked        BIGINT        NOT NULL  DEFAULT FLOOR(EXTRACT(EPOCH from NOW())*1000), -- millis since epoch

@@ -1,6 +1,6 @@
 package org.abos.linker.db;
 
-import org.abos.linker.core.Character;
+import org.abos.linker.core.Tag;
 import org.abos.linker.scraper.WikiScraper;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.PgConnection;
@@ -37,7 +37,7 @@ public final class DbHelper {
 
     public static final String SU_PW = "postgresql_su_pw";
 
-    public static final String CHARACTER_TABLE = "character";
+    public static final String TAG_TABLE = "tag";
 
     private final HostSpec[] specs = new HostSpec[1];
 
@@ -112,30 +112,32 @@ public final class DbHelper {
     }
 
     /**
-     * Adds all characters in the queue to the DB. Will only partially succeed if a duplicate entry is detected.
-     * @param queue the {@link BlockingQueue} with the characters that ends with {@link Character#DUMMY}
+     * Adds all tags in the queue to the DB. Will only partially succeed if a duplicate entry is detected.
+     * @param queue the {@link BlockingQueue} with the tags that ends with {@link Tag#DUMMY}
      * @throws IllegalStateException If any specified fandom is not in the DB.
      * @throws SQLException If an SQL exception occurs, especially if a duplicate entry was attempted to be inserted.
      */
-    public void addCharacters(final BlockingQueue<Character> queue) throws IllegalStateException, SQLException {
+    public void addTags(final BlockingQueue<Tag> queue) throws IllegalStateException, SQLException {
         final Map<String, Integer> fandomIds = new HashMap<>();
         try (final Connection connection = getConnection()) {
-            final String insertSql = "INSERT INTO character (name, description, fandom_id, link) VALUES (?,?,?,?)";
+            final String insertSql = "INSERT INTO tag (name, description, is_character, is_relationship, fandom_id, link) VALUES (?,?,?,?,?,?)";
             try (final PreparedStatement insertStmt = connection.prepareStatement(insertSql)) {
-                Character current;
+                Tag current;
                 while (true) {
                     try {
                         current = queue.poll(1, TimeUnit.SECONDS);
                         if (current == null) {
                             continue;
                         }
-                        if (current.equals(Character.DUMMY)) {
+                        if (current.equals(Tag.DUMMY)) {
                             break;
                         }
                         insertStmt.setString(1, current.name());
                         insertStmt.setString(2, current.description());
+                        insertStmt.setBoolean(3, current.isCharacter());
+                        insertStmt.setBoolean(4, current.isRelationship());
                         if (current.fandom() == null) {
-                            insertStmt.setNull(3, JDBCType.INTEGER.getVendorTypeNumber());
+                            insertStmt.setNull(5, JDBCType.INTEGER.getVendorTypeNumber());
                         }
                         else {
                             Integer id = fandomIds.get(current.fandom());
@@ -143,9 +145,9 @@ public final class DbHelper {
                                 id = getIdByName(connection, "fandom", current.fandom());
                                 fandomIds.put(current.fandom(), id);
                             }
-                            insertStmt.setInt(3, id);
+                            insertStmt.setInt(5, id);
                         }
-                        insertStmt.setString(4, current.link());
+                        insertStmt.setString(6, current.link());
                         insertStmt.execute();
                     } catch (InterruptedException e) {
                         /* Ignore. */
@@ -155,59 +157,59 @@ public final class DbHelper {
         } // -> try with Connection
     }
 
-    private void internalAddCharacterAlias(final Connection connection, final int characterId, final String alias) throws SQLException {
-        final String insertSql = "INSERT INTO character_alias (character_id, alias) VALUES (?,?)";
+    private void internalAddTagAlias(final Connection connection, final int tagId, final String alias) throws SQLException {
+        final String insertSql = "INSERT INTO tag_alias (tag_id, alias) VALUES (?,?)";
         try (final PreparedStatement insertStmt = connection.prepareStatement(insertSql)) {
-            insertStmt.setInt(1, characterId);
+            insertStmt.setInt(1, tagId);
             insertStmt.setString(2, alias);
         }
     }
 
     /**
-     * Adds an alias for a character name to the DB.
-     * @param name the name of the character
-     * @param alias a new(!) alias for the character
-     * @throws IllegalStateException If the character name was not to be found in the DB.
+     * Adds an alias for a tag name to the DB.
+     * @param name the name of the tag
+     * @param alias a new(!) alias for the tag
+     * @throws IllegalStateException If the tag name was not to be found in the DB.
      * @throws SQLException If an SQL exception occurs, especially if a duplicate entry was attempted to be inserted.
      */
-    public void addCharacterAlias(final String name, final String alias) throws SQLException {
+    public void addTagAlias(final String name, final String alias) throws SQLException {
         Objects.requireNonNull(name);
         Objects.requireNonNull(alias);
         try (final Connection connection = getConnection()) {
-            final int id = getIdByName(connection, CHARACTER_TABLE, name);
-            internalAddCharacterAlias(connection, id, alias);
+            final int id = getIdByName(connection, TAG_TABLE, name);
+            internalAddTagAlias(connection, id, alias);
         }
     }
 
     /**
-     * Removes the given alias from the character table and makes it an alias of the specified name.
+     * Removes the given alias from the tag table and makes it an alias of the specified name.
      * @param name the name to make an alias of
-     * @param alias the alias to be removed from the character table
+     * @param alias the alias to be removed from the tag table
      */
-    public void changeCharacterToAlias(final String name, final String alias) throws IllegalStateException, SQLException{
+    public void changeTagToAlias(final String name, final String alias) throws IllegalStateException, SQLException{
         Objects.requireNonNull(name);
         Objects.requireNonNull(alias);
-        final String preformattedUpdateSQL = "UPDATE %s SET character_id=? WHERE character_id=?";
+        final String preformattedUpdateSQL = "UPDATE %s SET tag_id=? WHERE tag_id=?";
         try (final Connection connection = getConnection()) {
-            final int characterId = getIdByName(connection, CHARACTER_TABLE, name);
-            final int aliasId = getIdByName(connection, CHARACTER_TABLE, alias);
+            final int tagId = getIdByName(connection, TAG_TABLE, name);
+            final int aliasId = getIdByName(connection, TAG_TABLE, alias);
             // replace the IDs where needed
-            try (final PreparedStatement aliasStmt = connection.prepareStatement(String.format(preformattedUpdateSQL, "character_alias"))) {
-                aliasStmt.setInt(1, characterId);
+            try (final PreparedStatement aliasStmt = connection.prepareStatement(String.format(preformattedUpdateSQL, "tag_alias"))) {
+                aliasStmt.setInt(1, tagId);
                 aliasStmt.setInt(2, aliasId);
             }
             try (final PreparedStatement aliasStmt = connection.prepareStatement(String.format(preformattedUpdateSQL, "related"))) {
-                aliasStmt.setInt(1, characterId);
+                aliasStmt.setInt(1, tagId);
                 aliasStmt.setInt(2, aliasId);
             }
             // add the alias
-            internalAddCharacterAlias(connection, characterId, alias);
+            internalAddTagAlias(connection, tagId, alias);
         }
     }
 
     public static void main(String[] args) throws SQLException, IOException {
         final DbHelper dbHelper = new DbHelper();
-        BlockingQueue<Character> queue = new WikiScraper().scrapeCharacters();
+        BlockingQueue<Tag> queue = new WikiScraper().scrapeCharacterTags();
         try {
             dbHelper.tearDownTables();
         }
@@ -215,7 +217,7 @@ public final class DbHelper {
             /* Tables were already deleted, ignore. */
         }
         dbHelper.setupTables();
-        dbHelper.addCharacters(queue);
+        dbHelper.addTags(queue);
     }
 
 }

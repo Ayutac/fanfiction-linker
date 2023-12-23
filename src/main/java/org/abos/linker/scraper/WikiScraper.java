@@ -1,6 +1,6 @@
 package org.abos.linker.scraper;
 
-import org.abos.linker.core.Character;
+import org.abos.linker.core.Tag;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -38,10 +38,10 @@ public final class WikiScraper {
     /**
      * Scrapes all character off the wiki.
      * @return A synchronized queue of all the characters in the wiki.
-     * Note that the last value of the queue will be {@link Character#DUMMY} to signify its end.
+     * Note that the last value of the queue will be {@link Tag#DUMMY} to signify its end.
      * @throws IOException If an I/O error occurs.
      */
-    public BlockingQueue<Character> scrapeCharacters() throws IOException {
+    public BlockingQueue<Tag> scrapeCharacterTags() throws IOException {
         // scrape all names + links
         final Map<String, String> links = new HashMap<>();
         Document doc = Jsoup.connect(BASE_URL + CHARACTER_PAGE).get();
@@ -75,23 +75,23 @@ public final class WikiScraper {
             doc = Jsoup.connect(BASE_URL + linkNext.attr("href")).get();
         }
         // scrape descriptions
-        final BlockingQueue<Character> result = new LinkedBlockingQueue<>();
+        final BlockingQueue<Tag> result = new LinkedBlockingQueue<>();
         new Thread(() -> {
             for (Map.Entry<String, String> entry : links.entrySet()) {
                 try {
-                    result.add(new Character(entry.getKey(), scrapeFirstSentence(entry.getValue()), null, entry.getValue()));
+                    result.add(new Tag(entry.getKey(), scrapeFirstSentence(entry.getValue()), true, false, null, entry.getValue()));
                     Thread.sleep(TIME_OUT);
                 } catch (IOException | InterruptedException ex) {
                     /* Ignore */
                 }
             }
-            result.add(Character.DUMMY);
+            result.add(Tag.DUMMY);
         }).start();
         return result;
     }
 
     public static void main(String[] args) throws IOException {
-        Queue<Character> queue = new WikiScraper().scrapeCharacters();
+        Queue<Tag> queue = new WikiScraper().scrapeCharacterTags();
         try {
             Thread.sleep(1000);
         } catch (InterruptedException ex) {
