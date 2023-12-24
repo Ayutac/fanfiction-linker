@@ -198,6 +198,7 @@ public final class Ao3Scraper {
                     /* Ignore */
                 }
             }
+            result.add(Fanfiction.DUMMY);
         }).start();
         return result;
     }

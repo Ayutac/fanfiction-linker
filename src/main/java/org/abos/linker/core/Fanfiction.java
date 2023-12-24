@@ -10,6 +10,11 @@ public record Fanfiction(String title, int chapters, int words, String language,
                          boolean completed, Instant lastUpdated, Instant lastChecked, String link,
                          List<Author> authors, List<Tag> tags, List<Fandom> crossovers) {
 
+    public static final Fanfiction DUMMY = new Fanfiction("", 1, 1, null, null,
+            false, false, false, false, false, false,
+            false, false, false, false, false, false,
+            false, null, Instant.EPOCH, "", List.of(), List.of(), List.of());
+
     public Fanfiction(final String title, final int chapters, final int words, final String language, final String rating,
                       final boolean warningNoneGiven, final boolean warningNoneApply, final boolean warningViolence, final boolean warningRape, final boolean warningDeath, final boolean warningUnderage,
                       final boolean catFf, final boolean catFm, final boolean catMm, final boolean catGen, final boolean catMulti, final boolean catOther,
