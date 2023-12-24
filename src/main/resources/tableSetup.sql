@@ -20,13 +20,15 @@ CREATE TABLE fandom (
 CREATE TABLE tag (
   id              SERIAL,
   name            VARCHAR(255)  UNIQUE NOT NULL,
-  description     VARCHAR(511)  NOT NULL          DEFAULT '',
+  description     VARCHAR(511),
   is_character    BOOLEAN       NOT NULL          DEFAULT FALSE,
   is_relationship BOOLEAN       NOT NULL          DEFAULT FALSE,
   fandom_id       INT           REFERENCES fandom(id), -- allowed to be null
   link            TEXT          UNIQUE,
   PRIMARY KEY(id)
 );
+INSERT INTO tag (name, description, is_character)
+VALUES ("OC", "An Own Character by the author, not from any existing fandom.", TRUE);
 CREATE TABLE tag_alias (
   tag_id  INT           NOT NULL  REFERENCES tag(id),
   alias   VARCHAR(255)  NOT NULL,
