@@ -9,7 +9,6 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -19,7 +18,7 @@ public final class WikiScraper {
 
     private static final String CHARACTER_PAGE = "/Category:Characters";
 
-    private static final int TIME_OUT = 100; // in milliseconds
+    public static final int TIME_OUT = 100; // in milliseconds
 
     public WikiScraper() {
         /* Nothing to initialize. */
@@ -88,22 +87,6 @@ public final class WikiScraper {
             result.add(Tag.DUMMY);
         }).start();
         return result;
-    }
-
-    public static void main(String[] args) throws IOException {
-        Queue<Tag> queue = new WikiScraper().scrapeCharacterTags();
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException ex) {
-            /* Ignore */
-        }
-        System.out.println(queue.peek());
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException ex) {
-            /* Ignore */
-        }
-        System.out.println(queue.size());
     }
 
 }

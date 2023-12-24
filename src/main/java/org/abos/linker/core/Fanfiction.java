@@ -43,8 +43,22 @@ public record Fanfiction(String title, int chapters, int words, String language,
         this.lastUpdated = lastUpdated;
         this.lastChecked = lastChecked == null ? Instant.now() : lastChecked;
         this.link = Objects.requireNonNull(link);
-        this.authors = Objects.requireNonNull(authors); // empty list means Anon author
-        this.tags = Objects.requireNonNull(tags);
-        this.crossovers = Objects.requireNonNull(crossovers);
+        // empty list means Anon author
+        this.authors = List.copyOf(authors);
+        this.tags = List.copyOf(tags);
+        this.crossovers = List.copyOf(crossovers);
+    }
+
+    /**
+     * Creates a quasi-copy of the specified {@link Fanfiction} with the last update getting adjusted.
+     * @param fanfiction the fanfiction to base this one of
+     * @param lastUpdated the new value for {@code lastUpdated}
+     */
+    public Fanfiction(final Fanfiction fanfiction, final Instant lastUpdated) {
+        this(fanfiction.title, fanfiction.chapters, fanfiction.words, fanfiction.language, fanfiction.rating,
+                fanfiction.warningNoneGiven, fanfiction.warningNoneApply, fanfiction.warningViolence, fanfiction.warningRape, fanfiction.warningDeath, fanfiction.warningUnderage,
+                fanfiction.catFf, fanfiction.catFm, fanfiction.catMm, fanfiction.catGen, fanfiction.catMulti, fanfiction.catOther,
+                fanfiction.completed, Objects.requireNonNull(lastUpdated), fanfiction.lastChecked, fanfiction.link,
+                fanfiction.authors, fanfiction.tags, fanfiction.crossovers);
     }
 }
