@@ -200,12 +200,12 @@ public final class DbHelper {
 
     private void internalInsertFandom(final Connection connection, final Fandom fandom) throws SQLException {
         final String insertSql;
-        final boolean hasLink = fandom.link() == null;
+        final boolean hasLink = fandom.link() != null;
         if (hasLink) {
-            insertSql = String.format("INSERT INTO TABLE %s (name, link) VALUES (?, ?)", TABLE_FANDOM);
+            insertSql = String.format("INSERT INTO %s (name, link) VALUES (?, ?)", TABLE_FANDOM);
         }
         else {
-            insertSql = String.format("INSERT INTO TABLE %s (name) VALUES (?)", TABLE_FANDOM);
+            insertSql = String.format("INSERT INTO %s (name) VALUES (?)", TABLE_FANDOM);
         }
         try (final PreparedStatement insertStmt = connection.prepareStatement(insertSql)) {
             setString(insertStmt, 1, fandom.name());
@@ -477,7 +477,20 @@ public final class DbHelper {
     }
 
     // TODO JavaDoc This method expects all refs in the list to be in the DB already
-    private void internalUpdateFanfictionRefs(final Connection connection, final List<? extends Named> refs, final Integer fanfictionId, final String refViewName, final String refTableName, final String refIdName, final boolean addAnon) throws SQLException {
+
+    /**
+     *
+     * @param connection
+     * @param refs
+     * @param fanfictionId
+     * @param refViewName the name of the view with the references
+     * @param refTableName the name of the table with the references
+     * @param tableName the name of the table where the references come from
+     * @param refIdName
+     * @param addAnon
+     * @throws SQLException
+     */
+    private void internalUpdateFanfictionRefs(final Connection connection, final List<? extends Named> refs, final Integer fanfictionId, final String refViewName, final String refTableName, final String tableName, final String refIdName, final boolean addAnon) throws SQLException {
         final String selectSql = String.format("SELECT name FROM %s WHERE fanfiction_id=%d", refViewName, fanfictionId);
         final List<String> present = new LinkedList<>();
         try (final PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
@@ -502,7 +515,7 @@ public final class DbHelper {
                     .toList();
             for (Named ref : remaining) {
                 insertStmt.setInt(1, fanfictionId);
-                final Integer refId = getIdByName(connection, refTableName, ref.getName());
+                final Integer refId = getIdByName(connection, tableName, ref.getName());
                 if (refId == null) {
                     throw new IllegalStateException("Unknown ref " + ref + " encountered!");
                 }
@@ -514,17 +527,17 @@ public final class DbHelper {
 
     // TODO JavaDoc This method expects all authors in the list to be in the DB already
     private void internalUpdateAuthored(final Connection connection, final List<Author> authors, final Integer fanfictionId) throws SQLException {
-        internalUpdateFanfictionRefs(connection, authors, fanfictionId, "authored_resolved", TABLE_AUTHOR, "author_id", true);
+        internalUpdateFanfictionRefs(connection, authors, fanfictionId, "authored_resolved", TABLE_AUTHORED, TABLE_AUTHOR, "author_id", true);
     }
 
     // TODO JavaDoc This method expects all tags in the list to be in the DB already
     private void internalUpdateTagged(final Connection connection, final List<Tag> tags, final Integer fanfictionId) throws SQLException {
-        internalUpdateFanfictionRefs(connection, tags, fanfictionId, "tagged_resolved", TABLE_TAG, "tag_id", false);
+        internalUpdateFanfictionRefs(connection, tags, fanfictionId, "tagged_resolved", "tagged", TABLE_TAG, "tag_id", false);
     }
 
     // TODO JavaDoc This method expects all fandoms in the list to be in the DB already
     private void internalUpdateCrossedOver(final Connection connection, final List<Fandom> fandoms, final Integer fanfictionId) throws SQLException {
-        internalUpdateFanfictionRefs(connection, fandoms, fanfictionId, "crossed_over_resolved", TABLE_FANDOM, "fandom_id", false);
+        internalUpdateFanfictionRefs(connection, fandoms, fanfictionId, "crossed_over_resolved", "crossed_over", TABLE_FANDOM, "fandom_id", false);
     }
 
     private void internalInsertFanfiction(final Connection connection, final Fanfiction fanfiction) throws SQLException {
@@ -551,8 +564,8 @@ public final class DbHelper {
             insertSql.append("last_checked, ");
             extraCounter++;
         }
-        insertSql.append("link) (");
-        insertSql.append("?,".repeat(17 + extraCounter));
+        insertSql.append("link) VALUES (");
+        insertSql.append("?,".repeat(16 + extraCounter));
         insertSql.append("?)");
         // prepare optional IDs
         Integer languageId = null;
