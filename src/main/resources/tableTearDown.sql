@@ -1,6 +1,9 @@
 BEGIN;
+DROP VIEW crossed_over_resolved;
 DROP TABLE crossed_over;
+DROP VIEW tagged_resolved;
 DROP TABLE tagged;
+DROP VIEW authored_resolved;
 DROP TABLE authored;
 DROP TABLE fanfiction;
 DROP TABLE lang;

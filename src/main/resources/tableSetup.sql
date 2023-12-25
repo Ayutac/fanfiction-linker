@@ -14,7 +14,7 @@ VALUES
 CREATE TABLE fandom (
   id            SERIAL,
   name          VARCHAR(255)  UNIQUE NOT NULL,
-  link          TEXT          UNIQUE NOT NULL,
+  link          TEXT,
   PRIMARY KEY(id)
 );
 CREATE TABLE tag (
@@ -28,7 +28,8 @@ CREATE TABLE tag (
   PRIMARY KEY(id)
 );
 INSERT INTO tag (name, description, is_character)
-VALUES ("OC", "An Own Character by the author, not from any existing fandom.", TRUE);
+VALUES ('OC', 'An Own Character by the author, not from any existing fandom.', TRUE)
+;
 CREATE TABLE tag_alias (
   tag_id  INT           NOT NULL  REFERENCES tag(id),
   alias   VARCHAR(255)  NOT NULL,
@@ -45,7 +46,8 @@ CREATE TABLE author (
   PRIMARY KEY(id)
 );
 INSERT INTO author (name)
-VALUES ('Anonymous');
+VALUES ('Anonymous')
+;
 CREATE TABLE profile (
   author_id     INT   NOT NULL  REFERENCES author(id),
   link          TEXT  NOT NULL,
@@ -57,7 +59,8 @@ CREATE TABLE lang ( -- recognized languages
   PRIMARY KEY(id)
 );
 INSERT INTO lang (name)
-VALUES ('English');
+VALUES ('English')
+;
 CREATE TABLE fanfiction (
   id                  SERIAL,
   title               VARCHAR(255)  NOT NULL,
@@ -88,14 +91,32 @@ CREATE TABLE authored (
   author_id     INT NOT NULL  REFERENCES author(id)       DEFAULT 1,
   PRIMARY KEY(fanfiction_id, author_id)
 );
+CREATE VIEW authored_resolved AS
+SELECT title, fanfiction_id, name, author_id
+FROM authored
+INNER JOIN fanfiction ON authored.fanfiction_id=fanfiction.id
+INNER JOIN author ON authored.author_id=author.id
+;
 CREATE TABLE tagged (
   fanfiction_id INT NOT NULL  REFERENCES fanfiction(id),
   tag_id        INT NOT NULL  REFERENCES tag(id),
   PRIMARY KEY(fanfiction_id, tag_id)
 );
+CREATE VIEW tagged_resolved AS
+SELECT title, fanfiction_id, name, tag_id
+FROM tagged
+INNER JOIN fanfiction ON tagged.fanfiction_id=fanfiction.id
+INNER JOIN tag ON tagged.tag_id=tag.id
+;
 CREATE TABLE crossed_over (
   fanfiction_id INT NOT NULL  REFERENCES fanfiction(id),
   fandom_id     INT NOT NULL  REFERENCES fandom(id),
   PRIMARY KEY(fanfiction_id, fandom_id)
 );
+CREATE VIEW crossed_over_resolved AS
+SELECT title, fanfiction_id, name, fandom_id
+FROM crossed_over
+INNER JOIN fanfiction ON crossed_over.fanfiction_id=fanfiction.id
+INNER JOIN fandom ON crossed_over.fandom_id=fandom.id
+;
 COMMIT;
