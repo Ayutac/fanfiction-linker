@@ -6,9 +6,9 @@ CREATE TABLE rating (
 );
 INSERT INTO rating (name)
 VALUES
-  ('Not rated'),
+  ('Not Rated'),
   ('General Audiences'),
-  ('Teen and Up Audiences'),
+  ('Teen And Up Audiences'),
   ('Mature'),
   ('Explicit');
 CREATE TABLE fandom (
