@@ -7,7 +7,7 @@ import java.io.IOException;
 /**
  * Test class for {@link Ao3Scraper}
  */
-public class TestAo3Scraper {
+public final class TestAo3Scraper {
 
     @Test
     public void testScrapeFanfictions() throws IOException {

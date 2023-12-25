@@ -7,7 +7,7 @@ import java.io.IOException;
 /**
  * Test class for {@link WikiScraper}.
  */
-public class TestWikiScraper {
+public final class TestWikiScraper {
 
     @Test
     public void testScrapeCharacterTags() throws IOException {
