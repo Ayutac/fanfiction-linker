@@ -1,8 +1,10 @@
 package org.abos.linker.core;
 
+import org.abos.common.Named;
+
 import java.util.Objects;
 
-public record Tag(String name, String description, boolean isCharacter, boolean isRelationship, String fandom, String link) {
+public record Tag(String name, String description, boolean isCharacter, boolean isRelationship, String fandom, String link) implements Named {
 
     public static final Tag DUMMY = new Tag("", null, false, false, null, null);
 
@@ -29,4 +31,8 @@ public record Tag(String name, String description, boolean isCharacter, boolean 
         this.link = link;
     }
 
+    @Override
+    public String getName() {
+        return name();
+    }
 }
