@@ -33,10 +33,13 @@ public final class WikiScraper {
 
     public String scrapeFirstSentence(final String url) throws IOException {
         final Document doc = Jsoup.connect(url).get();
-        final Element contentHolder = doc.getElementById("citizen-section-collapsible-0");
+        Element contentHolder = doc.getElementById("citizen-section-collapsible-0");
         if (contentHolder == null) {
-            LOGGER.warn("Missing content holder for {} detected!", url);
-            return "";
+            contentHolder = doc.getElementById("section-collapsible-0");
+            if (contentHolder == null) {
+                LOGGER.warn("Missing content holder for {} detected!", url);
+                return "";
+            }
         }
         final Elements content = contentHolder.getElementsByTag("p");
         if (content.size() == 0) {
