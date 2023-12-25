@@ -1,10 +1,17 @@
 package org.abos.linker.db;
 
+import org.abos.common.LogUtil;
 import org.abos.common.Named;
 import org.abos.linker.core.Author;
 import org.abos.linker.core.Fandom;
 import org.abos.linker.core.Fanfiction;
 import org.abos.linker.core.Tag;
+import org.abos.linker.scraper.Ao3Scraper;
+import org.abos.linker.scraper.WikiScraper;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.config.Configurator;
 import org.postgresql.PGProperty;
 import org.postgresql.jdbc.PgConnection;
 import org.postgresql.util.HostSpec;
@@ -18,6 +25,8 @@ import java.sql.JDBCType;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -61,6 +70,10 @@ public final class DbHelper {
     public static final String TABLE_AUTHORED = "authored";
 
     public static final String INSERT_INTO_TAG_SQL = "INSERT INTO tag (name, description, is_character, is_relationship, fandom_id, link) VALUES (?,?,?,?,?,?)";
+
+    private static final Logger LOGGER = LogManager.getLogger(DbHelper.class);
+
+    private static final String LOG_SQL_MSG = "SQL about to be executed: {}";
 
     private final HostSpec[] specs = new HostSpec[1];
 
@@ -126,6 +139,7 @@ public final class DbHelper {
         Objects.requireNonNull(type);
         Objects.requireNonNull(what);
         final String selectSql = String.format("SELECT id FROM %s WHERE %s=?", table, type);
+        LOGGER.debug(LOG_SQL_MSG, selectSql);
         try (final PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
             setString(selectStmt, 1, what);
             try (final ResultSet rs = selectStmt.executeQuery()) {
@@ -154,6 +168,7 @@ public final class DbHelper {
     }
 
     private void innerExecuteScript(final Connection connection, final String sql) throws SQLException {
+        LOGGER.debug(LOG_SQL_MSG, sql);
         try (final PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.execute();
         }
@@ -169,15 +184,24 @@ public final class DbHelper {
     }
 
     public void setupTables() throws IOException, SQLException {
+        LOGGER.info("Setting up tables...");
+        final Instant start = Instant.now();
         executeScript(TABLE_SETUP_FILE_NAME);
+        final Duration time = Duration.between(start, Instant.now());
+        LOGGER.info(LogUtil.LOG_TIME_MSG, "Setting up tables", time.toMinutes(), time.toSecondsPart());
     }
 
     public void tearDownTables() throws IOException, SQLException {
+        LOGGER.info("Tearing down tables...");
+        final Instant start = Instant.now();
         executeScript(TABLE_TEARDOWN_FILE_NAME);
+        final Duration time = Duration.between(start, Instant.now());
+        LOGGER.info(LogUtil.LOG_TIME_MSG, "Tearing down tables", time.toMinutes(), time.toSecondsPart());
     }
 
     private void internalInsertLanguage(final Connection connection, final String language) throws SQLException {
         String insertSql = String.format("INSERT INTO %s (name) VALUES (?)", TABLE_LANGUAGE);
+        LOGGER.debug(LOG_SQL_MSG, insertSql);
         try (final PreparedStatement insertStmt = connection.prepareStatement(insertSql)) {
             setString(insertStmt, 1, Objects.requireNonNull(language));
             insertStmt.execute();
@@ -207,6 +231,7 @@ public final class DbHelper {
         else {
             insertSql = String.format("INSERT INTO %s (name) VALUES (?)", TABLE_FANDOM);
         }
+        LOGGER.debug(LOG_SQL_MSG, insertSql);
         try (final PreparedStatement insertStmt = connection.prepareStatement(insertSql)) {
             setString(insertStmt, 1, fandom.name());
             if (hasLink) {
@@ -230,6 +255,7 @@ public final class DbHelper {
         // update link if present
         if (fandom.link() != null) {
             final String updateSql = String.format("UPDATE %s SET link=? WHERE id=?", TABLE_FANDOM);
+            LOGGER.debug(LOG_SQL_MSG, updateSql);
             try (final PreparedStatement updateStmt = connection.prepareStatement(updateSql)) {
                 setString(updateStmt, 1, fandom.link());
                 updateStmt.setInt(2, fandomId);
@@ -249,6 +275,7 @@ public final class DbHelper {
         }
         // if tag is not existent, create it
         if (tagId == null) {
+            LOGGER.debug(LOG_SQL_MSG, INSERT_INTO_TAG_SQL);
             try (final PreparedStatement insertStmt = connection.prepareStatement(INSERT_INTO_TAG_SQL)) {
                 fillInsertTagStmt(insertStmt, tag, fandomId);
                 insertStmt.execute();
@@ -256,21 +283,23 @@ public final class DbHelper {
         }
         // otherwise update it
         else {
-            final StringBuilder updateSql = new StringBuilder("UPDATE ");
-            updateSql.append(TABLE_TAG);
-            updateSql.append(" SET name=?");
+            final StringBuilder updateSqlBuilder = new StringBuilder("UPDATE ");
+            updateSqlBuilder.append(TABLE_TAG);
+            updateSqlBuilder.append(" SET name=?");
             if (tag.description() != null) {
-                updateSql.append(", description=?");
+                updateSqlBuilder.append(", description=?");
             }
-            updateSql.append(", is_character=?, is_relationship=?");
+            updateSqlBuilder.append(", is_character=?, is_relationship=?");
             if (hasFandom) {
-                updateSql.append(", fandom_id=?");
+                updateSqlBuilder.append(", fandom_id=?");
             }
             if (tag.link() != null) {
-                updateSql.append(", link=?");
+                updateSqlBuilder.append(", link=?");
             }
-            updateSql.append("WHERE id=?");
-            try (final PreparedStatement updateStmt = connection.prepareStatement(updateSql.toString())) {
+            updateSqlBuilder.append("WHERE id=?");
+            final String updateSql = updateSqlBuilder.toString();
+            LOGGER.debug(LOG_SQL_MSG, updateSql);
+            try (final PreparedStatement updateStmt = connection.prepareStatement(updateSql)) {
                 int index = 0;
                 setString(updateStmt, ++index, tag.name());
                 if (tag.description() != null) {
@@ -303,8 +332,11 @@ public final class DbHelper {
      * @throws SQLException If an SQL exception occurs, especially if a duplicate entry was attempted to be inserted.
      */
     public void addTags(final BlockingQueue<Tag> queue) throws IllegalStateException, SQLException {
+        LOGGER.info("Adding tags...");
+        final Instant start = Instant.now();
         final Map<String, Integer> fandomIds = new HashMap<>();
         try (final Connection connection = getConnection()) {
+            LOGGER.debug(LOG_SQL_MSG, INSERT_INTO_TAG_SQL);
             try (final PreparedStatement insertStmt = connection.prepareStatement(INSERT_INTO_TAG_SQL)) {
                 Tag current;
                 while (true) {
@@ -333,13 +365,16 @@ public final class DbHelper {
                     catch (InterruptedException e) {
                         /* Ignore. */
                     }
-                }
+                } // -> while true
             } // -> try with PreparedStatement
         } // -> try with Connection
+        final Duration time = Duration.between(start, Instant.now());
+        LOGGER.info(LogUtil.LOG_TIME_MSG, "Adding tags", time.toMinutes(), time.toSecondsPart());
     }
 
     private void internalInsertTagAlias(final Connection connection, final int tagId, final String alias) throws SQLException {
         final String insertSql = "INSERT INTO tag_alias (tag_id, alias) VALUES (?,?)";
+        LOGGER.debug(insertSql);
         try (final PreparedStatement insertStmt = connection.prepareStatement(insertSql)) {
             insertStmt.setInt(1, tagId);
             setString(insertStmt, 2, alias);
@@ -385,11 +420,15 @@ public final class DbHelper {
                 throw new IllegalStateException(String.format(preformattedErrMsg, alias));
             }
             // replace the IDs where needed
-            try (final PreparedStatement aliasStmt = connection.prepareStatement(String.format(preformattedUpdateSQL, "tag_alias"))) {
+            final String updateTagAliasSql = String.format(preformattedUpdateSQL, "tag_alias");
+            LOGGER.debug(LOG_SQL_MSG, updateTagAliasSql);
+            try (final PreparedStatement aliasStmt = connection.prepareStatement(updateTagAliasSql)) {
                 aliasStmt.setInt(1, tagId);
                 aliasStmt.setInt(2, aliasId);
             }
-            try (final PreparedStatement aliasStmt = connection.prepareStatement(String.format(preformattedUpdateSQL, "related"))) {
+            final String updateRelatedSql = String.format(preformattedUpdateSQL, "related");
+            LOGGER.debug(LOG_SQL_MSG, updateRelatedSql);
+            try (final PreparedStatement aliasStmt = connection.prepareStatement(updateRelatedSql)) {
                 aliasStmt.setInt(1, tagId);
                 aliasStmt.setInt(2, aliasId);
             }
@@ -408,19 +447,19 @@ public final class DbHelper {
     }
 
     private void internalUpdateAuthorLinks(final Connection connection, final List<String> newLinks, final int authorId, final boolean replaceLinks) throws SQLException {
-        final StringBuilder sql = new StringBuilder();
-        sql.append("BEGIN;");
-        sql.append(System.lineSeparator());
+        final StringBuilder sqlBuilder = new StringBuilder();
+        sqlBuilder.append("BEGIN;");
+        sqlBuilder.append(System.lineSeparator());
         if (replaceLinks) {
-            sql.append("DELETE FROM ");
-            sql.append(TABLE_PROFILE);
-            sql.append(" WHERE author_id=");
-            sql.append(authorId);
-            sql.append(";");
-            sql.append(System.lineSeparator());
+            sqlBuilder.append("DELETE FROM ");
+            sqlBuilder.append(TABLE_PROFILE);
+            sqlBuilder.append(" WHERE author_id=");
+            sqlBuilder.append(authorId);
+            sqlBuilder.append(";");
+            sqlBuilder.append(System.lineSeparator());
             if (!newLinks.isEmpty()) {
-                sql.append(buildInsertLinks(newLinks, authorId));
-                sql.append(System.lineSeparator());
+                sqlBuilder.append(buildInsertLinks(newLinks, authorId));
+                sqlBuilder.append(System.lineSeparator());
             }
         }
         else {
@@ -429,6 +468,7 @@ public final class DbHelper {
             }
             final List<String> existingLinks = new LinkedList<>();
             final String selectSql = "SELECT (link) FROM " + TABLE_PROFILE + " WHERE author_id=" + authorId;
+            LOGGER.debug(LOG_SQL_MSG, selectSql);
             try (final PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
                 try (final ResultSet rs = selectStmt.executeQuery()) {
                     while (rs.next()) {
@@ -438,17 +478,20 @@ public final class DbHelper {
             }
             final List<String> remainingLinks = new ArrayList<>(newLinks);
             remainingLinks.removeAll(existingLinks);
-            sql.append(buildInsertLinks(remainingLinks, authorId));
-            sql.append(System.lineSeparator());
+            sqlBuilder.append(buildInsertLinks(remainingLinks, authorId));
+            sqlBuilder.append(System.lineSeparator());
         }
-        sql.append("COMMIT;");
-        try (final PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
+        sqlBuilder.append("COMMIT;");
+        final String sql = sqlBuilder.toString();
+        LOGGER.debug(LOG_SQL_MSG, sql);
+        try (final PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.execute();
         }
     }
 
     private void internalInsertAuthor(final Connection connection, final Author author, final boolean replaceLinks) throws SQLException {
         final String insertSql = String.format("INSERT INTO %s (name) VALUES (?)", TABLE_AUTHOR);
+        LOGGER.debug(LOG_SQL_MSG, insertSql);
         try (final PreparedStatement insertStmt = connection.prepareStatement(insertSql)) {
             setString(insertStmt, 1, author.name());
             insertStmt.execute();
@@ -491,8 +534,9 @@ public final class DbHelper {
      * @throws SQLException
      */
     private void internalUpdateFanfictionRefs(final Connection connection, final List<? extends Named> refs, final Integer fanfictionId, final String refViewName, final String refTableName, final String tableName, final String refIdName, final boolean addAnon) throws SQLException {
-        final String selectSql = String.format("SELECT name FROM %s WHERE fanfiction_id=%d", refViewName, fanfictionId);
         final List<String> present = new LinkedList<>();
+        final String selectSql = String.format("SELECT name FROM %s WHERE fanfiction_id=%d", refViewName, fanfictionId);
+        LOGGER.debug(LOG_SQL_MSG, selectSql);
         try (final PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
             try (final ResultSet rs = selectStmt.executeQuery()) {
                 while (rs.next()) {
@@ -501,6 +545,7 @@ public final class DbHelper {
             }
         }
         final String insertSql = String.format("INSERT INTO %s (fanfiction_id, %s) VALUES (?,?)", refTableName, refIdName);
+        LOGGER.debug(LOG_SQL_MSG, insertSql);
         try (final PreparedStatement insertStmt = connection.prepareStatement(insertSql)) {
             if (addAnon && refs.isEmpty()) {
                 if (!present.contains("Anonymous")) {
@@ -545,28 +590,28 @@ public final class DbHelper {
             throw new NullPointerException("At this point a non-null last update must be in the fanfiction instance!");
         }
         // prepare command
-        final StringBuilder insertSql = new StringBuilder("INSERT INTO ");
-        insertSql.append(TABLE_FANFICTION);
-        insertSql.append(" (title, chapters, words, ");
+        final StringBuilder insertSqlBuilder = new StringBuilder("INSERT INTO ");
+        insertSqlBuilder.append(TABLE_FANFICTION);
+        insertSqlBuilder.append(" (title, chapters, words, ");
         int extraCounter = 0;
         if (fanfiction.language() != null) {
-            insertSql.append("lang_id, ");
+            insertSqlBuilder.append("lang_id, ");
             extraCounter++;
         }
         if (fanfiction.rating() != null) {
-            insertSql.append("rating_id, ");
+            insertSqlBuilder.append("rating_id, ");
             extraCounter++;
         }
-        insertSql.append("warning_none_given, warning_none_apply, warning_violence, warning_rape, warning_death, warning_underage, ");
-        insertSql.append("cat_ff, cat_fm, cat_mm, cat_gen, cat_multi, cat_other, ");
-        insertSql.append("last_updated, ");
+        insertSqlBuilder.append("warning_none_given, warning_none_apply, warning_violence, warning_rape, warning_death, warning_underage, ");
+        insertSqlBuilder.append("cat_ff, cat_fm, cat_mm, cat_gen, cat_multi, cat_other, ");
+        insertSqlBuilder.append("last_updated, ");
         if (fanfiction.lastChecked() != null) {
-            insertSql.append("last_checked, ");
+            insertSqlBuilder.append("last_checked, ");
             extraCounter++;
         }
-        insertSql.append("link) VALUES (");
-        insertSql.append("?,".repeat(16 + extraCounter));
-        insertSql.append("?)");
+        insertSqlBuilder.append("link) VALUES (");
+        insertSqlBuilder.append("?,".repeat(16 + extraCounter));
+        insertSqlBuilder.append("?)");
         // prepare optional IDs
         Integer languageId = null;
         if (fanfiction.language() != null) {
@@ -588,7 +633,9 @@ public final class DbHelper {
         }
         // fill out command and execute
         int index = 0;
-        try (final PreparedStatement insertStmt = connection.prepareStatement(insertSql.toString())) {
+        final String insertSql = insertSqlBuilder.toString();
+        LOGGER.debug(LOG_SQL_MSG, insertSql);
+        try (final PreparedStatement insertStmt = connection.prepareStatement(insertSql)) {
             setString(insertStmt, ++index, fanfiction.title());
             insertStmt.setInt(++index, fanfiction.chapters());
             insertStmt.setInt(++index, fanfiction.words());
@@ -640,6 +687,8 @@ public final class DbHelper {
     }
 
     public void updateFanfictions(final BlockingQueue<Fanfiction> queue) throws SQLException {
+        LOGGER.info("Updating fanfictions...");
+        final Instant start = Instant.now();
         try (final Connection connection = getConnection()) {
             Fanfiction current;
             while (true) {
@@ -670,11 +719,17 @@ public final class DbHelper {
                 }
             } // -> while true
         } // -> try with Connection
+        final Duration time = Duration.between(start, Instant.now());
+        LOGGER.info(LogUtil.LOG_TIME_MSG, "Updating fanfictions", time.toMinutes(), time.toSecondsPart());
     }
 
     public static void main(String[] args) throws SQLException, IOException {
+        if ("true".equals(System.getProperty("developer_mode"))) {
+            Configurator.setRootLevel(Level.DEBUG);
+        }
         final DbHelper dbHelper = new DbHelper();
-//        BlockingQueue<Tag> queue = new WikiScraper().scrapeCharacterTags();
+        BlockingQueue<Tag> tagQueue = new WikiScraper().scrapeCharacterTags();
+        BlockingQueue<Fanfiction> tagFiction = new Ao3Scraper().scrapeFanfictions();
         try {
             dbHelper.tearDownTables();
         }
@@ -683,7 +738,8 @@ public final class DbHelper {
             ex.printStackTrace();
         }
         dbHelper.setupTables();
-//        dbHelper.addTags(queue);
+        dbHelper.addTags(tagQueue);
+        dbHelper.updateFanfictions(tagFiction);
     }
 
 }

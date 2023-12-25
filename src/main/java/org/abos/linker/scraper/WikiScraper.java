@@ -1,12 +1,17 @@
 package org.abos.linker.scraper;
 
+import org.abos.common.LogUtil;
 import org.abos.linker.core.Tag;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -19,6 +24,8 @@ public final class WikiScraper {
     private static final String CHARACTER_PAGE = "/Category:Characters";
 
     public static final int TIME_OUT = 100; // in milliseconds
+
+    private static final Logger LOGGER = LogManager.getLogger(WikiScraper.class);
 
     public WikiScraper() {
         /* Nothing to initialize. */
@@ -41,6 +48,8 @@ public final class WikiScraper {
      * @throws IOException If an I/O error occurs.
      */
     public BlockingQueue<Tag> scrapeCharacterTags() throws IOException {
+        LOGGER.info("Scraping character tags...");
+        final Instant start = Instant.now();
         // scrape all names + links
         final Map<String, String> links = new HashMap<>();
         Document doc = Jsoup.connect(BASE_URL + CHARACTER_PAGE).get();
@@ -85,6 +94,8 @@ public final class WikiScraper {
                 }
             }
             result.add(Tag.DUMMY);
+            final Duration time = Duration.between(start, Instant.now());
+            LOGGER.info(LogUtil.LOG_TIME_MSG, "Scraping character tags", time.toMinutes(), time.toSecondsPart());
         }).start();
         return result;
     }

@@ -1,10 +1,13 @@
 package org.abos.linker.scraper;
 
+import org.abos.common.LogUtil;
 import org.abos.linker.core.Author;
 import org.abos.linker.core.Fandom;
 import org.abos.linker.core.Fanfiction;
 import org.abos.linker.core.FanfictionBuilder;
 import org.abos.linker.core.Tag;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -35,6 +38,8 @@ public final class Ao3Scraper {
     private static final DateTimeFormatter UPDATED_FORMATTER = DateTimeFormatter.ISO_DATE; // uuuu-MM-dd
 
     public static final int TIME_OUT = (int)Duration.ofSeconds(1).toMillis();
+
+    private static final Logger LOGGER = LogManager.getLogger(Ao3Scraper.class);
 
     private final Random random = new Random();
 
@@ -192,6 +197,8 @@ public final class Ao3Scraper {
     }
 
     public BlockingQueue<Fanfiction> scrapeFanfictions() throws IOException {
+        LOGGER.info("Scraping fanfiction...");
+        final Instant start = Instant.now();
         final List<FanfictionBuilder> list = new LinkedList<>();
         Document doc = getDocument(BASE_URL + FANFICTION_PAGE);
         while (true) {
@@ -222,6 +229,8 @@ public final class Ao3Scraper {
                 }
             }
             result.add(Fanfiction.DUMMY);
+            final Duration time = Duration.between(start, Instant.now());
+            LOGGER.info(LogUtil.LOG_TIME_MSG, "Scraping fanfiction", time.toMinutes(), time.toSecondsPart());
         }).start();
         return result;
     }
