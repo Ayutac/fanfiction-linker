@@ -197,7 +197,7 @@ public final class Ao3Scraper {
     }
 
     public BlockingQueue<Fanfiction> scrapeFanfictions() throws IOException {
-        LOGGER.info("Scraping fanfiction...");
+        LOGGER.info("Scraping fanfiction from Ao3...");
         final Instant start = Instant.now();
         final List<FanfictionBuilder> list = new LinkedList<>();
         Document doc = getDocument(BASE_URL + FANFICTION_PAGE);
@@ -230,7 +230,7 @@ public final class Ao3Scraper {
             }
             result.add(Fanfiction.DUMMY);
             final Duration time = Duration.between(start, Instant.now());
-            LOGGER.info(LogUtil.LOG_TIME_MSG, "Scraping fanfiction", time.toMinutes(), time.toSecondsPart());
+            LOGGER.info(LogUtil.LOG_TIME_MSG, "Scraping fanfiction from Ao3", time.toMinutes(), time.toSecondsPart());
         }).start();
         return result;
     }

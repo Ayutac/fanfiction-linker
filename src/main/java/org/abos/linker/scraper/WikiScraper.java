@@ -57,7 +57,7 @@ public final class WikiScraper {
      * @throws IOException If an I/O error occurs.
      */
     public BlockingQueue<Tag> scrapeCharacterTags() throws IOException {
-        LOGGER.info("Scraping character tags...");
+        LOGGER.info("Scraping character tags from Wiki...");
         final Instant start = Instant.now();
         // scrape all names + links
         final Map<String, String> links = new HashMap<>();
@@ -104,7 +104,7 @@ public final class WikiScraper {
             }
             result.add(Tag.DUMMY);
             final Duration time = Duration.between(start, Instant.now());
-            LOGGER.info(LogUtil.LOG_TIME_MSG, "Scraping character tags", time.toMinutes(), time.toSecondsPart());
+            LOGGER.info(LogUtil.LOG_TIME_MSG, "Scraping character tags from Wiki", time.toMinutes(), time.toSecondsPart());
         }).start();
         return result;
     }
