@@ -61,7 +61,7 @@ public final class DbHelper {
 
     public static final String TABLE_PROFILE = "profile";
 
-    public static final String TABLE_LANGUAGE = "language";
+    public static final String TABLE_LANGUAGE = "lang";
 
     public static final String TABLE_TAG = "tag";
 
