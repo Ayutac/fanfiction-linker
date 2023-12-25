@@ -478,8 +478,10 @@ public final class DbHelper {
             }
             final List<String> remainingLinks = new ArrayList<>(newLinks);
             remainingLinks.removeAll(existingLinks);
-            sqlBuilder.append(buildInsertLinks(remainingLinks, authorId));
-            sqlBuilder.append(System.lineSeparator());
+            if (!remainingLinks.isEmpty()) {
+                sqlBuilder.append(buildInsertLinks(remainingLinks, authorId));
+                sqlBuilder.append(System.lineSeparator());
+            }
         }
         sqlBuilder.append("COMMIT;");
         final String sql = sqlBuilder.toString();
