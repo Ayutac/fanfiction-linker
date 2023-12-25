@@ -3,6 +3,7 @@ package org.abos.linker.scraper;
 import org.abos.linker.core.Author;
 import org.abos.linker.core.Fandom;
 import org.abos.linker.core.Fanfiction;
+import org.abos.linker.core.FanfictionBuilder;
 import org.abos.linker.core.Tag;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -62,7 +63,7 @@ public final class Ao3Scraper {
         return localDateToInstant(LocalDate.parse(updated.get(1).text(), UPDATED_FORMATTER));
     }
 
-    public Fanfiction scrapeFanfiction(final Element entry) {
+    public FanfictionBuilder scrapeFanfiction(final Element entry) {
         // scrape heading and authors
         final Elements h4Links = entry.getElementsByTag("h4").get(0).getElementsByTag("a");
         final String title = h4Links.get(0).text();
@@ -165,11 +166,33 @@ public final class Ao3Scraper {
         if (words == 0) {
             throw new IllegalStateException("Couldn't find words for " + title + "!");
         }
-        return new Fanfiction(title, chapters, words, language, rating, warningNoneGiven, warningNoneApply, warningViolence, warningRape, warningDeath, warningUnderage, catFf, catFm, catMm, catGen, catMulti, catOther, completed, null, null, link, authors, tagList, fandoms);
+        return new FanfictionBuilder()
+                .title(title)
+                .chapters(chapters)
+                .words(words)
+                .language(language)
+                .rating(rating)
+                .warningNoneGiven(warningNoneGiven)
+                .warningNoneApply(warningNoneApply)
+                .warningViolence(warningViolence)
+                .warningRape(warningRape)
+                .warningDeath(warningDeath)
+                .warningUnderage(warningUnderage)
+                .catFf(catFf)
+                .catFm(catFm)
+                .catMm(catMm)
+                .catGen(catGen)
+                .catMulti(catMulti)
+                .catOther(catOther)
+                .completed(completed)
+                .link(link)
+                .authors(authors)
+                .tags(tagList)
+                .crossovers(fandoms);
     }
 
     public BlockingQueue<Fanfiction> scrapeFanfictions() throws IOException {
-        final List<Fanfiction> list = new LinkedList<>();
+        final List<FanfictionBuilder> list = new LinkedList<>();
         Document doc = getDocument(BASE_URL + FANFICTION_PAGE);
         while (true) {
             final Elements group = doc.getElementsByAttributeValue("role", "article");
@@ -190,9 +213,9 @@ public final class Ao3Scraper {
         }
         final BlockingQueue<Fanfiction> result = new LinkedBlockingQueue<>();
         new Thread(() -> {
-            for (Fanfiction fanfiction : list) {
+            for (FanfictionBuilder fanfiction : list) {
                 try {
-                    result.add(new Fanfiction(fanfiction, scrapeLastUpdated(fanfiction.link())));
+                    result.add(fanfiction.lastUpdated(scrapeLastUpdated(fanfiction.link())).build());
                     Thread.sleep(TIME_OUT + random.nextInt(TIME_OUT/2));
                 } catch (IOException | InterruptedException ex) {
                     /* Ignore */
