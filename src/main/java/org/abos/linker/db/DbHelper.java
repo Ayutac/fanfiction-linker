@@ -38,11 +38,11 @@ public final class DbHelper {
 
     public static final String TABLE_TEARDOWN_FILE_NAME = "tableTearDown.sql";
 
-    public static final String URL_PROPERTY = "postgresql_url";
+    public static final String PROPERTY_URL = "postgresql_url";
 
-    public static final String SU_NAME = "postgresql_su_name";
+    public static final String PROPERTY_SU_NAME = "postgresql_su_name";
 
-    public static final String SU_PW = "postgresql_su_pw";
+    public static final String PROPERTY_SU_PW = "postgresql_su_pw";
 
     public static final String TABLE_RATING = "rating";
 
@@ -67,9 +67,9 @@ public final class DbHelper {
     private final Properties suInfo = new Properties();
 
     public DbHelper() throws IllegalStateException {
-        final String url = System.getProperty(URL_PROPERTY);
+        final String url = System.getProperty(PROPERTY_URL);
         if (url == null) {
-            throw new IllegalStateException("No url property given! Use: " + URL_PROPERTY);
+            throw new IllegalStateException("No url property given! Use: " + PROPERTY_URL);
         }
         final int portIndex = url.indexOf(':');
         final int port;
@@ -89,8 +89,8 @@ public final class DbHelper {
         }
         specs[0] = new HostSpec(host, port);
         suInfo.put(PGProperty.PG_DBNAME.getName(), dbName);
-        suInfo.put(PGProperty.USER.getName(), System.getProperty(SU_NAME));
-        suInfo.put(PGProperty.PASSWORD.getName(), System.getProperty(SU_PW));
+        suInfo.put(PGProperty.USER.getName(), System.getProperty(PROPERTY_SU_NAME));
+        suInfo.put(PGProperty.PASSWORD.getName(), System.getProperty(PROPERTY_SU_PW));
     }
 
     private Connection getConnection() throws SQLException {
