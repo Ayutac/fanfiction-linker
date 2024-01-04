@@ -48,7 +48,7 @@ public final class LinkerUtil {
                 bw.write(Integer.toString(uploads));
                 bw.write(",");
                 bw.write(Integer.toString(sum));
-                bw.write("\n\r"); // we want to ensure it is readable in Windows Text Editor
+                bw.write("\r\n"); // we want to ensure it is readable in Windows Text Editor
             }
             bw.flush();
         }
