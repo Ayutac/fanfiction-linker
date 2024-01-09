@@ -17,6 +17,27 @@ public final class LinkerUtil {
         /* No instantiation. */
     }
 
+    public static int count(final Map<String, Integer> map, final String startString) {
+        final int[] count = new int[] {0};
+        map.forEach((name, value) -> {
+            if (name.startsWith(startString)) {
+                count[0] += value;
+            }
+        });
+        return count[0];
+    }
+
+    public static String toCsvString(final Map<?, ?> map) {
+        final StringBuilder s = new StringBuilder();
+        map.forEach((key, val) -> {
+            s.append(key);
+            s.append(';');
+            s.append(val);
+            s.append("\r\n");
+        });
+        return s.toString();
+    }
+
     public static void createCsvFromUploadTimes(final Map<Integer, ZonedDateTime> uploadTimes, final String fileLocation) throws IOException {
         final Map<Integer, LocalDate> simplifiedTimes = new HashMap<>();
         final ZoneId utc = ZoneId.of("UTC");

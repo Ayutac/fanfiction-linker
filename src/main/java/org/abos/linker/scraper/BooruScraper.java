@@ -24,6 +24,8 @@ public final class BooruScraper {
 
     private static final String IMAGE_PAGE = "/post/view/";
 
+    private static final String TAG_PAGE = "/tags/popularity";
+
     public static final String SHM_SESSION_NAME = "shm_session";
 
     public static final int TIME_OUT = 100; // in milliseconds
@@ -61,6 +63,21 @@ public final class BooruScraper {
         }
         final Duration time = Duration.between(start, Instant.now());
         LOGGER.info(LogUtil.LOG_TIME_MSG, "Scraping upload times from Booru", time.toMinutes(), time.toSecondsPart());
+        return result;
+    }
+
+    public Map<String, Integer> scrapeTagCounts() throws IOException {
+        final Map<String, Integer> result = new HashMap<>();
+        final Document doc = Jsoup.connect(BASE_URL + TAG_PAGE).get();
+        final Elements content = doc.getElementById("Tagsmain").getElementsByTag("a");
+        String name;
+        int count;
+        for (Element tagLink : content) {
+            name = tagLink.text();
+            count = Integer.parseInt(name.substring(name.lastIndexOf('(')+1, name.lastIndexOf(')')));
+            name = name.substring(0, name.lastIndexOf('(')-1);
+            result.put(name, count);
+        }
         return result;
     }
 }
